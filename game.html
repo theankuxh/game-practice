@@ -160,6 +160,7 @@
       .topbar{ align-items:flex-start; flex-direction:column; }
       .hint{ text-align:left; }
       .stats{ width:100%; }
+      canvas{ touch-action: none; }
     }
   </style>
 </head>
@@ -181,7 +182,10 @@
         </div>
       </div>
       <div class="hint">
-        Move: <span class="smallkey">Arrow</span> / <span class="smallkey">WASD</span><br/>
+        Move: <span class="smallkey">Arrow</span> / <span class="smallkey">WASD</span>
+        <br/>
+        Mobile: swipe on the board
+        <br/>
         Pause: <span class="smallkey">P</span> &nbsp;·&nbsp; Restart: <span class="smallkey">R</span>
       </div>
     </div>
@@ -526,6 +530,42 @@
       howBtn.addEventListener('click', () => {
         const isShown = howText.style.display !== 'none';
         howText.style.display = isShown ? 'none' : 'block';
+      });
+
+      // Mobile swipe controls
+      let touchStart = null;
+      canvas.addEventListener('touchstart', (e) => {
+        if(!e.touches || !e.touches[0]) return;
+        touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY, t: Date.now() };
+      }, { passive: true });
+
+      canvas.addEventListener('touchmove', (e) => {
+        // prevent scrolling while playing
+        if(!running || paused) return;
+        e.preventDefault();
+      }, { passive: false });
+
+      canvas.addEventListener('touchend', (e) => {
+        if(!touchStart) return;
+        const end = (e.changedTouches && e.changedTouches[0]) ? e.changedTouches[0] : null;
+        if(!end) return;
+        const dx = end.clientX - touchStart.x;
+        const dy = end.clientY - touchStart.y;
+        const adx = Math.abs(dx);
+        const ady = Math.abs(dy);
+
+        const minSwipe = 20;
+        if(Math.max(adx, ady) < minSwipe) return;
+
+        // Determine direction, choose the dominant axis
+        if(adx > ady){
+          // horizontal
+          if(dx > 0) setDirectionFromKey('ArrowRight');
+          else setDirectionFromKey('ArrowLeft');
+        } else {
+          if(dy > 0) setDirectionFromKey('ArrowDown');
+          else setDirectionFromKey('ArrowUp');
+        }
       });
 
       document.addEventListener('keydown', (e) => {
